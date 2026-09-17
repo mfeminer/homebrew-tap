@@ -7,8 +7,14 @@ class Lane < Formula
   # is never reviewed. There is deliberately no `version` line: brew scans 0.1.3
   # out of this URL, and stating it again is a second copy of the number that can
   # disagree with the first (`brew audit --strict` rejects it).
-  url "https://github.com/mfeminer/lane/releases/download/v0.1.3/lane-macos-arm64"
-  sha256 "68dba215ae4c73f478da7c3ac0a01688eea1b088e4522c8c4bf2d3feb8a0f5ab"
+  #
+  # v0.1.4 is the first lane release built with PYTHONHASHSEED=0 and
+  # SOURCE_DATE_EPOCH set, which means a CD re-run against that tag rebuilds the
+  # same bytes and this sha256 stays true. On v0.1.3 and earlier it would not
+  # have. Treat whatever tag is pinned here as frozen regardless — cut a new
+  # patch tag rather than re-running CD against a published one.
+  url "https://github.com/mfeminer/lane/releases/download/v0.1.4/lane-macos-arm64"
+  sha256 "10ef096f8a79878cc9bbea99887353e8749bf0004798c05d745f5196c31acb9b"
   license "MIT"
 
   # Only macOS on Apple silicon is released today. Without this, Homebrew would
