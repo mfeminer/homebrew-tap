@@ -3,10 +3,15 @@
 A [Homebrew](https://brew.sh) tap for my projects.
 
 ```bash
-brew tap mfeminer/tap
+brew install mfeminer/tap/lane
 ```
 
-Once, and every formula below installs by its own name from then on.
+**Install by the full `mfeminer/tap/<formula>` name the first time.** Homebrew 6 will
+not load a formula from a tap you have not trusted, and `brew tap` on its own does not
+grant that trust — `brew tap mfeminer/tap && brew install lane` is refused with
+*"Refusing to load formula from untrusted tap"*. Naming the formula in full is the
+trust grant, and there is no prompt to answer. After that first install the short name
+works for everything: `brew install lane`, `brew upgrade lane`.
 
 ## What is in it
 
@@ -15,8 +20,7 @@ Once, and every formula below installs by its own name from then on.
 Run several pieces of work side by side, each in its own git worktree.
 
 ```bash
-brew install lane          # after `brew tap mfeminer/tap`
-brew install mfeminer/tap/lane   # or in one command, without tapping first
+brew install mfeminer/tap/lane
 ```
 
 `brew upgrade lane` from then on. macOS on Apple silicon, Sonoma or newer —
