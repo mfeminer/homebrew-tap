@@ -1,19 +1,23 @@
 name: CI
 
-# What can actually be wrong with this repository is the formula: a url pointing at
-# nothing, a sha256 that no longer matches the asset, a binary that will not run once
-# installed. None of that is visible by reading the file — only by installing it. So
-# that is what this does, on every push.
+# What can actually be wrong in this repository is a formula: a url pointing at
+# nothing, a sha256 that no longer matches the asset, a binary that will not run
+# once installed. None of that is visible by reading the file — only by installing
+# it. So that is what this does, on every push.
 #
 # There is no bottle-building job here on purpose. Bottles cache a *compiled* build,
-# and this formula never compiles anything; the scaffolding `brew tap-new` writes by
+# and nothing here compiles anything; the scaffolding `brew tap-new` writes by
 # default would exercise nothing real.
+#
+# One job per formula rather than a matrix over `Formula/*.rb`: the install is the
+# same everywhere, but "and then run it" is different for each, and a job that only
+# installed would miss the failures worth catching.
 on:
   push:
   pull_request:
-  # A release is published from the lane repository, not this one, so nothing here
-  # changes when a URL rots or GitHub changes how assets are served. A weekly run is
-  # what notices that before a user does.
+  # Releases are published from each project's own repository, not this one, so
+  # nothing here changes when a URL rots or GitHub changes how assets are served. A
+  # weekly run is what notices that before a user does.
   schedule:
     - cron: "0 7 * * 1"
   workflow_dispatch:
@@ -22,19 +26,20 @@ permissions:
   contents: read
 
 jobs:
-  install:
-    # arm64 and Sonoma — the same platform the formula declares it supports, and the
-    # same runner lane's own CD builds the binary on.
+  lane:
+    # arm64 and Sonoma — the platform lane's formula declares it supports, and the
+    # runner lane's own CD builds the binary on.
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install lane from this tap
-        # The checkout is used directly as a tap, so this tests the formula in the
-        # repository rather than whatever is already published.
-        run: |
-          brew tap mfeminer/lane "file://$GITHUB_WORKSPACE"
-          brew install --formula --verbose mfeminer/lane/lane
+      - name: Tap this checkout
+        # The checkout is used directly as the tap, so everything below tests the
+        # formula in this repository rather than whatever is already published.
+        run: brew tap mfeminer/tap "file://$GITHUB_WORKSPACE"
+
+      - name: Install lane
+        run: brew install --formula --verbose mfeminer/tap/lane
 
       - name: Run it
         # The three things a user does first. A formula can install cleanly and still
@@ -51,11 +56,11 @@ jobs:
           fi
 
       - name: Check the installed version matches the formula
-        # If the formula's `version` and the binary's own `--version` ever disagree,
+        # If the formula's version and the binary's own `--version` ever disagree,
         # `brew upgrade` and `brew list --versions` both start lying about what is
         # installed. This is the same check lane's own CD makes against the tag.
         run: |
-          declared="$(brew info --json=v2 mfeminer/lane/lane | jq -r '.formulae[0].versions.stable')"
+          declared="$(brew info --json=v2 mfeminer/tap/lane | jq -r '.formulae[0].versions.stable')"
           built="$(lane --version | awk '{print $2}')"
           if [ "$built" != "$declared" ]; then
             echo "::error::formula declares $declared, binary reports $built" >&2
@@ -64,6 +69,6 @@ jobs:
           echo "formula declares $declared, binary reports $built"
 
       - name: Audit the formula
-        # Catches the class of mistake the install cannot: a `releases/latest` URL that
-        # happens to resolve today, a missing license, a malformed desc.
-        run: brew audit --formula --strict --online mfeminer/lane/lane
+        # Catches the class of mistake installing cannot: a `releases/latest` URL that
+        # happens to resolve today, a missing license, a second copy of the version.
+        run: brew audit --formula --strict --online mfeminer/tap/lane
